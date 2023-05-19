@@ -49,11 +49,11 @@ In a nutshell, your Backstage instance is a Node/React app built using Backstage
 Backstage uses a three-layers model to explain how a Developer Portal is built using its framework.  
 ```mermaid
 graph LR
-Plugin --> App
-Plugin --> App
-Plugin --> App
-Plugin --> App
-App --> Backstage core
+  Plugin --> App
+  Plugin --> App
+  Plugin --> App
+  Plugin --> App
+  App --> Backstage core
 ```
 
 
