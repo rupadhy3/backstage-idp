@@ -160,14 +160,14 @@ You’ll be prompted to input the name you want for your Backstage instance; it�
 
 The script will copy Backstage’s template with directories and files and install all its dependencies.
 When you navigate to the newly created directory, you’ll see the following structure:
-
-─ packages
-    ├─ app
-            └─ package.json
-    └─ backend
-            └─ package.json
-─ app-config.yaml
-─ catalog-info.yaml
-─ lerna.json
-─ package.json
-
+```
+  ─ packages
+      ├─ app
+              └─ package.json
+      └─ backend
+              └─ package.json
+  ─ app-config.yaml
+  ─ catalog-info.yaml
+  ─ lerna.json
+  ─ package.json
+```
