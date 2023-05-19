@@ -27,5 +27,32 @@ including which team is responsible for it, documentation, availability, deploym
 Indeed, an often sought-after feature of Developer Portals is their ability to track ownership and interdependencies across services. Each software component  
 has a team or individual contributor who owns it and is responsible for it. Additionally, the software catalog graphs the dependencies between the components.  
 
+### Backstage
+#### Backstage’s Philosophy
+Backstage’s vision is to create the best Developer Experience possible. At the same time it is not intended to be a single source of truth,  
+but an aggregator. Backstage doesn’t seek to replace your existing CI/CD manager or LDAP directory, nor to re-implement their UIs. Instead,  
+Backstage processes information about your services from different sources and puts them together, so it’s easier for developers to navigate them.  
+For Backstage to be effective, it requires every software component to be owned by a single team, who will be responsible for keeping its information up to date.  
+And we’ve naturally arrived at the other Backstage pillar: ownership.
+
+#### Backstage Is a Framework
+Backstage is not a finished product that you can install and use. Rather, Backstage is a collection of tools and libraries that can be used to  
+create your own Developer Portal. Backstage’s core is composed of around 25 packages, which include a CLI, utility tools, API definitions, themes,  
+and helpers. But what really makes up Backstage are the more than 150 open source plugin packages available, which include the framework’s main features.  
+You can pick and choose what you need and extend its functionality by creating new plugins too.  
+
+But don’t worry, you don’t have to learn what all those packages are to get started. Backstage provides you with a starting point through their CLI,  
+and from there, you can add or remove plugins as you please.  
+
+#### Your Backstage Instance
+In a nutshell, your Backstage instance is a Node/React app built using Backstage’s core libraries on top of which you install community and private plugins.  
+Backstage uses a three-layers model to explain how a Developer Portal is built using its framework.  
+```sequence
+Plugin->App
+Plugin->App
+Plugin->App
+Plugin->App
+App-->Backstage Core
+```
 
 
