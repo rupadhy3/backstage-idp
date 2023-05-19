@@ -47,13 +47,13 @@ and from there, you can add or remove plugins as you please.
 #### Your Backstage Instance
 In a nutshell, your Backstage instance is a Node/React app built using Backstage’s core libraries on top of which you install community and private plugins.  
 Backstage uses a three-layers model to explain how a Developer Portal is built using its framework.  
-```flow
-st=>start: Plugin
-st=>start: Plugin
-st=>start: Plugin
-st=>start: Plugin
-op:operation: App
-op:operation: Backstage core
+```mermaid
+graph LR
+Plugin --> App
+Plugin --> App
+Plugin --> App
+Plugin --> App
+App --> Backstage core
 ```
 
 
