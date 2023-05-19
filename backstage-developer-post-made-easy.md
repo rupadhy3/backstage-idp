@@ -54,7 +54,7 @@ flowchart TD
    C[Plugin] --> E[App]
    D[Plugin] --> E[App]
    E[App] --> F[Backstage Core]
-   Backstage's Three layer Model
 ```
+Backstage's Three layer Model
 
 
