@@ -171,3 +171,244 @@ When you navigate to the newly created directory, you’ll see the following str
   ─ lerna.json
   ─ package.json
 ```
+
+Notice that there are several package.json, that’s because your Backstage instance is implemented as a monorepo. Thus, the frontend (app)  
+and the backend (backend) have their own dependencies and can be deployed independently. To manage dependencies between the monorepo,  
+Backstage uses lerna, hence the lerna.json file. 
+
+Notice as well the catalog-info.yaml file. Backstage uses this metadata file to add itself to the Software Catalog. Yes, Backstage wants  
+to track every software asset in your organization, including itself!  
+
+At last, check out app-config.yaml. This is the main configuration file, where you can define your instance’s name and set options for  
+the backend, authentication, and other integrations.  
+
+Now, let’s check out what Backstage looks like. Navigate to your instance’s directory in your terminal and run:
+
+**yarn dev**
+
+Once you see **[0] Webpack compiled successfully** in your terminal output, Backstage is ready to be used. Go to **http://localhost:3000/**  
+in your browser to see the Catalog up and running with sample entities. Feel free to browse around.  
+
+Now, let’s start making your Backstage instance more yours by changing its name. Go to your app-config.yaml file and change the app’s title to yours.  
+In our case, it looks like this:  
+```
+app:
+  title: Terroir Portal
+  baseUrl: http://localhost:3000
+
+organization:
+  name: Terroir Technologies
+```
+Now restart your Backstage servers, and you’ll see the name reflected!  
+
+#### Installing PostgreSQL
+By default, Backstage is initialized with an in-memory database, so any work you do in the instance will be deleted every time you stop the server.  
+Thus, let’s switch to PostgreSQL. You’ll start by installing PostgreSQL and setting a password for the default postgres user.  
+
+If you’re using Linux, you can get PostgreSQL through apt-get:
+
+**sudo apt-get install postgresql**
+
+For this course, you’ll use the default postgres user. So let’s set a password for this user. If you’re using Postgres.app, double-click on the postgres user, and you’ll get a terminal prompt. If you’re using the CLI, you’ll get to the same prompt through: 
+
+**sudo -u postgres psql**
+
+Once there, you’ll see something like this:  
+```
+psql (14.5)
+Type "help" for help.
+
+postgres=#
+```
+Now, set the user postgres password to whatever you want with this command (secret is a password example):  
+
+**postgres=# ALTER USER postgres PASSWORD 'secret';**
+
+#### Setting up Postgres in Backstage
+You already worked on the main configuration file, app-config.yaml, to set your organization name. But you’ll find app-config.local.yaml and  
+app-config.production.yaml too, these are used in local and production environments, respectively.  
+
+For now, you’ll be working with app-config.local.yaml. Backstage includes this file by default in .gitignore,  
+which means nothing you put there will be committed nor pushed upstream.  
+
+To set up Backstage with Postgres in your machine, add the following to your app-config.local.yaml:  
+```
+backend:
+  database:
+    connection:
+      host: localhost
+      # Default postgresql port, change accordingly to your case
+      port: 5432
+      user: postgres
+      # The password you set earlier
+      password: secret
+```
+Stop and run your instance again with **yarn dev**.
+
+#### Setting up Authentication
+You most likely need authentication for your Developer Portal. Backstage supports eleven authentication providers out of the box, 
+including Okta, Google, and custom OAuth 2 proxies. Here, you’ll get started with GitHub for authentication.
+
+To enable GitHub authentication in your Backstage instance, you’ll create a GitHub OAuth App and add its credentials  
+in app-config.local.yaml. Then, you’ll set up a Sign In button in Backstage’s frontend.  
+
+Create your GitHub OAuth App with following details, and take note of the Client ID and Client Secret:
+Homepage URL: http://local:3000.  
+Authorization Callback URL: http://localhost:7007/api/auth/github/handler/frame.  
+
+Now, open your app-config.local.yaml and add the authentication settings below the postgres details:  
+```
+backend:
+  database:
+    # ...
+auth:
+  environment: development
+  providers:
+    github:
+      development:
+        clientId: YOUR-CLIENT-ID
+        clientSecret: YOUR-CLIENT-SECRET
+        gitenterpriseurl: https://github.ibm.com
+```
+Run your Backstage instance again, and if you see no errors, the setup is correct and you’re now ready to add a Sign In button!  
+Open packages/app/src/App.tsx and add the following below the last import line.  
+```
+import { githubAuthApiRef } from '@backstage/core-plugin-api';
+import { SignInProviderConfig, SignInPage } from '@backstage/core-components';
+const githubProvider: SignInProviderConfig = {
+  id: 'github-auth-provider',
+  title: 'GitHub',
+  message: 'Sign in using GitHub',
+  apiRef: githubAuthApiRef,
+};
+```
+Within the same file, search for const app = createApp({, and below the apis object, add:  
+```
+components: {
+   SignInPage: props => (
+     <SignInPage
+       {...props}
+       auto
+       provider={githubProvider}
+     />
+   ),
+ },
+```
+Now, restart your instance, and you’ll see a Sign In prompt.  
+
+Make sure both the frontend and backend are done loading in your terminal, or you’ll get a funny behavior. If you see **[0] webpack compiled successfully**
+in the terminal logs, it means the frontend is ready; if you see something like **[1] backstage info Listening on:7007**, the backend is ready.
+
+Now you’re done setting up Backstage locally with PostgreSQL and authentication via GitHub!
+
+### Introduction to the Catalog
+The Catalog is Backstage’s central feature, it is versatile enough for you to be able to register all your software assets in it.  
+
+#### Registering Components in the Catalog
+The most common kind of entity that you’ll handle in your Backstage instance are components. Components refer to  
+software components such as services, websites, and libraries that are typically linked to a repository whose code  
+produces deployed instances or linkable artifacts.  
+
+In Backstage, components are described with metadata in a YAML file that is stored in the repository where their code lives.  
+Backstage needs to know where those YAML files are located in order to add them to the Catalog.  
+There are two ways to do this: manually registering a component through Backstage’s UI and setting up an entity processor  
+that discovers YAML files in your organization’s source code management system.  
+
+Once you register these locations in the Catalog, Backstage will fetch the YAML files from them. Therefore, Backstage needs access to read your  
+repository and will need an access token. Backstage will periodically check the information in the metadata files to keep the Catalog up to date.  
+
+#### Describing a Component in a YAML File
+Components in Backstage are entities of kind Component with a few extra data requirements such as type, lifecycle, and owner.  
+You describe these fields in a YAML file quite straightforwardly  
+Let’s say your organization has a public-facing website that you want to register in the Catalog.  
+A description of that website could look something like this:  
+```
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: terroir-tracking-web
+  description: Find where your juice comes from
+spec:
+  type: website
+  lifecycle: production
+  owner: tracking-team
+```
+In the snippet above, notice that apiVersion, kind, and metadata.name are mandatory for all entities. And for a component,  
+such as a website from the example, you must also specify type, lifecycle, and owner in spec.  
+
+By default, Backstage recognizes a component to be any type from the following: website, service, and library. As for lifecycle,  
+the framework recognizes production, experimental, and deprecated. You can use these attributes to customize how components are rendered in your Catalog.  
+
+Once you have a YAML file to describe your component, you’ll need to add it to the component’s repository and make it available on its default branch.  
+
+Although you can name your YAML file as you wish, Backstage recommends naming it catalog-info.yaml for uniformity.  
+
+#### Registering a GitHub Integration
+Integrations in Backstage lets you read or publish data using external sources such as GitHub, GitLab, Bitbucket, and other Cloud providers.  
+Backstage offers 10 different vendor integrations by default. To register components in the Catalog, you must set up an integration so Backstage  
+can fetch the YAML files from your repositories.  
+
+To set up a local GitHub integration, you’ll create a GitHub access token for your instance and then add its credentials to your app-config.local.yaml.  
+
+**Consider using a GitHub App to manage the integration when setting up Backstage for your organization. A GitHub app gives you higher 
+rate limits and lets a team manage the integration rather than a singular person.**
+
+To keep it simple lets use a Personal Access Token here, hence create a Personal Access Token.
+Now, open your app-config.local.yaml, and add the credentials for your token as pictured below:
+```
+integrations:
+  github:
+    - host: github.com
+      token: ghp_YOURTOKEN # this should be the token from GitHub
+ ```
+ 
+ #### Registering a Single Component Into the Catalog
+ Once you have a YAML file in your repository and have enabled the GitHub integration in your Backstage instance,  
+ you’re ready to register a component in the Catalog.  
+ In your browser, navigate to your Backstage instance and click “Create” on the sidebar or “Create Component”.  
+ They both will take you to the Scaffolder page, Once here, click on “REGISTER EXISTING COMPONENT” in the top right corner. 
+ You’ll be prompted to input the location of your component’s YAML file.  
+
+You’ll be prompted to authorize your Backstage instance in your GitHub account.  
+
+After authorizing access to your account, input the URL of your catalog-info.yaml file. Click on Analyze.  
+After clicking “Import”, you’ll notice that Backstage will create a component and an associated location for you.  
+
+#### Other Ways of Registering Components
+For surfacing component locations automatically from your organization, Backstage offers entity providers for GitHub,  
+Gitlab, Azure DevOps, and Bitbucket. The entity provider will scan your organization’s repositories looking for metadata files  
+to register them in the Catalog. You can configure how frequently Backstage will scan your organization in each service.  
+
+Backstage also allows you to arrange your components and other kinds of entities in a system model, so they’re easier to navigate.  
+
+### Working With Entities
+#### Understanding the Lifecycle of an Entity
+By registering a YAML file location, you’ve already added your first component to the Catalog. Under the hood, Backstage used an 
+entity provider to store it as a raw entity in the database, then ran it through a series of processors and stitched together 
+the processors’ outcomes into a final entity. Only after all this is done you could see the entity page in your Catalog. 
+Let’s review these steps to understand how the Catalog works.
+
+All entities in Backstage come from entity providers, which take data from authoritative sources. Entity providers import  
+raw data from their source and store it in a database in a process called ingestion. A Backstage instance typically uses  
+more than one entity provider, for example, GitHub for repositories, Okta for users, and AWS S3 for resources.  
+Entity providers can issue updates on their associated entities when they see fit and determine when raw entities are to be processed.  
+
+When marked for processing, a raw entity goes through a series of steps with processors that may change their data format,  
+extract relationships, emit errors, or even create new entities. Entities are processed one by one but can involve all of your services.  
+You can add and configure processors in your instance as you want.  
+
+After processing is done, the information resulting from processing steps that impact the current entity is stitched together into  
+a final entity that can be consumed through the Catalog API, which is used to generate pages and more in your Backstage instance.  
+The stitching process is fixed and doesn’t allow any customizations, so you need to make sure you transform the data in the ingestion or processing stages.  
+
+#### Understanding Locations
+Back when you added your first component to the Catalog, you may remember that you got a message notifying you that two  
+different entities were created. We focused on the component, but let’s take a closer look at the location. Although  
+locations are internal to Backstage, knowing what they are might be useful when setting up the Catalog. 
+
+Location is a kind of entity in Backstage. It is used for keeping track of where Catalog information can be found.  
+In this case, the generated location targets the YAML file repository. You normally do not have to interact with location  
+entities because Backstage generates them. You won’t even see them in the dependency graph for your components.  
+
+
+ 
